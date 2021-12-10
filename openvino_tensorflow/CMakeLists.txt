@@ -7,6 +7,7 @@ set(LIB_NAME openvino_tensorflow)
 include_directories(${TensorFlow_INCLUDE_DIR})
 include_directories(${TensorFlow_INCLUDE_DIR}/external/nsync/public)
 include_directories(${NGRAPH_INSTALL_DIR}/include)
+include_directories(${NGRAPH_INSTALL_DIR}/include/ngraph/frontend)
 include_directories(${ABSL_INCLUDE_DIR})
 
 # For some reason the following is needed for ABI compatibility with TF.
@@ -43,6 +44,7 @@ set(SRC
    ie_backend_engine.cc
    ie_basic_engine.cc
    ie_vadm_engine.cc
+   ovtf_decoder.cc
 )
 
 message(STATUS "OPENVINO_TF_USE_GRAPPLER_OPTIMIZER: ${OPENVINO_TF_USE_GRAPPLER_OPTIMIZER}")
@@ -78,6 +80,8 @@ else()
           ovtf_logger
           ${TensorFlow_FRAMEWORK_LIBRARY}
           ngraph_lib
+          tensorflow_frontend_lib
+          frontend_common_lib
           absl_algorithm
           absl_container
           absl_strings
@@ -138,12 +142,15 @@ if(WIN32)
   set(TBB_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/external/tbb/bin/)
   install(FILES ${CMAKE_INSTALL_PREFIX}/../ocm/OCM/Release/${OCM_LIB} DESTINATION "${OVTF_INSTALL_LIB_DIR}")
 else()
-  set(IE_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/lib/intel64/)
-  set(TBB_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/external/tbb/lib/)
+  #set(IE_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/lib/intel64/)
+  #set(TBB_LIBS ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/external/tbb/lib/)
+  set(IE_LIBS ${OPENVINO_ARTIFACTS_DIR}/runtime/lib/intel64/)
+  set(TBB_LIBS ${OPENVINO_ARTIFACTS_DIR}/runtime/3rdparty/tbb/lib/)
   install(FILES ${CMAKE_INSTALL_PREFIX}/../ocm/OCM/${OCM_LIB} DESTINATION "${OVTF_INSTALL_LIB_DIR}")
 endif()
 if(NOT DISABLE_PACKAGING_OPENVINO_LIBS)
- install(DIRECTORY ${IE_LIBS} DESTINATION "${OVTF_INSTALL_LIB_DIR}" )
+ #install(DIRECTORY ${IE_LIBS} DESTINATION "${OVTF_INSTALL_LIB_DIR}" )
+ install(DIRECTORY ${IE_LIBS} DESTINATION "/home/mcavus/Workspace/ngraph/fe_pr3/openvino_tensorflow/build_cmake/openvino/bin/intel64/Release/lib" )
  install(DIRECTORY ${TBB_LIBS} DESTINATION "${OVTF_INSTALL_LIB_DIR}" )
     if(USE_OPENVINO_FROM_LOCATION)
       if(WIN32)

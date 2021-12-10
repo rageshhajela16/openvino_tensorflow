@@ -151,10 +151,12 @@ option(UNIT_TEST_TF_CC_DIR "Location where TensorFlow CC library is located" FAL
 option(USE_OPENVINO_FROM_LOCATION "Use OpenVINO located in OPENVINO_ARTIFACTS_DIR" FALSE)
 option(OPENVINO_ARTIFACTS_DIR "Where would OpenVINO be installed after build" FALSE)
 
-set(InferenceEngine_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/share)
+#set(InferenceEngine_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/inference_engine/share)
+set(InferenceEngine_DIR ${OPENVINO_ARTIFACTS_DIR}/runtime/cmake)
 find_package(InferenceEngine REQUIRED)
 
-set(ngraph_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/ngraph/cmake)
+#set(ngraph_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/ngraph/cmake)
+set(ngraph_DIR ${OPENVINO_ARTIFACTS_DIR}/runtime/cmake)
 find_package(ngraph QUIET)
 
 include_directories(${InferenceEngine_INCLUDE_DIRS})
@@ -186,7 +188,9 @@ message(STATUS "UNIT_TEST_ENABLE:           ${UNIT_TEST_ENABLE}")
 message(STATUS "OPENVINO_ARTIFACTS_DIR:     ${OPENVINO_ARTIFACTS_DIR}")
 message(STATUS "USE_PRE_BUILT_OPENVINO:       ${USE_PRE_BUILT_OPENVINO}")
 message(STATUS "OPENVINO_VERSION: ${OPENVINO_VERSION}")
-if (${OPENVINO_VERSION} MATCHES "2021.4.2")
+if (${OPENVINO_VERSION} MATCHES "master")
+  add_definitions(-DOPENVINO_2021_4_2=1)
+elseif (${OPENVINO_VERSION} MATCHES "2021.4.2")
   add_definitions(-DOPENVINO_2021_4_2=1)
 elseif (${OPENVINO_VERSION} MATCHES "2021.4.1")
   add_definitions(-DOPENVINO_2021_4_1=1)
@@ -207,11 +211,13 @@ endif()
 if(OS_VERSION STREQUAL "\"centos\"")
     set(LIB "lib64")
 else()
-    set(LIB "lib")
+    #set(LIB "lib")
+    set(LIB "lib/intel64")
 endif()
 
 if(ngraph_FOUND)
-    set(NGRAPH_INSTALL_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/ngraph/)
+    #set(NGRAPH_INSTALL_DIR ${OPENVINO_ARTIFACTS_DIR}/deployment_tools/ngraph/)
+    set(NGRAPH_INSTALL_DIR ${OPENVINO_ARTIFACTS_DIR}/runtime)
 else()
     set(NGRAPH_INSTALL_DIR ${OPENVINO_ARTIFACTS_DIR})
 endif()
@@ -221,6 +227,20 @@ set_target_properties(
     ngraph_lib
     PROPERTIES IMPORTED_LOCATION
     ${NGRAPH_IMPORTED_LOCATION}
+)
+
+add_library(tensorflow_frontend_lib SHARED IMPORTED)                                                                                                                                                          
+set_target_properties(
+    tensorflow_frontend_lib
+    PROPERTIES IMPORTED_LOCATION
+    ${NGRAPH_INSTALL_DIR}/${LIB}/libtensorflow_ov_frontend.so
+)
+
+add_library(frontend_common_lib SHARED IMPORTED)
+set_target_properties(
+        frontend_common_lib
+        PROPERTIES IMPORTED_LOCATION
+        ${NGRAPH_INSTALL_DIR}/${LIB}/libfrontend_common.so
 )
 
 SET(BASEPATH "${CMAKE_SOURCE_DIR}")

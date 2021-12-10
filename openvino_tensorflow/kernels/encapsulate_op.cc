@@ -33,6 +33,7 @@
 #include "openvino_tensorflow/ovtf_builder.h"
 #include "openvino_tensorflow/ovtf_timer.h"
 #include "openvino_tensorflow/ovtf_utils.h"
+#include "openvino_tensorflow/ovtf_graph_iterator.h"
 
 #ifdef _WIN32
 #define EXPAND(x) x
@@ -574,6 +575,7 @@ Status NGraphEncapsulateOp::GetExecutable(
 
   // Translate the TensorFlow graph to nGraph.
   std::shared_ptr<ngraph::Function> ng_function;
+  std::shared_ptr<OVTFGraphIterator> graph_iterator;
   if (it == m_ng_exec_map.end()) {
     // Measure the current total memory usage
     long vm = 0, rss = 0, vm0 = 0, rss0 = 0;
@@ -582,8 +584,13 @@ Status NGraphEncapsulateOp::GetExecutable(
     ng_result_list.clear();
     ng_output_shapes.clear();
     OVTF_VLOG(1) << "Compilation cache miss: " << m_name;
-    TF_RETURN_IF_ERROR(Builder::TranslateGraph(
-        input_shapes, static_input_map, &m_graph, m_name, ng_function,
+    //TF_RETURN_IF_ERROR(Builder::TranslateGraph(
+    //    input_shapes, static_input_map, &m_graph, m_name, ng_function,
+    //    ng_result_list, tf_input_tensors));
+    //util::DumpNGGraph(ng_function, m_name);
+
+    TF_RETURN_IF_ERROR(Builder::CreateGraphIterator(
+        input_shapes, static_input_map, &m_graph, m_name, graph_iterator, ng_function,
         ng_result_list, tf_input_tensors));
     util::DumpNGGraph(ng_function, m_name);
 
