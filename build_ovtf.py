@@ -547,8 +547,8 @@ def main():
         openvino_src_dir = os.path.join(os.getcwd(), "openvino")
         print("OV_SRC_DIR: ", openvino_src_dir)
 
-        #build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
-        #               artifacts_location, arguments.debug_build, verbosity)
+        build_openvino(build_dir, openvino_src_dir, cxx_abi, target_arch,
+                       artifacts_location, arguments.debug_build, verbosity)
 
     # Next build CMAKE options for the bridge
     atom_flags = ""

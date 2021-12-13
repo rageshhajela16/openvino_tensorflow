@@ -33,8 +33,9 @@ class OVTFDecoder : public ov::frontend::DecoderBase {
 public:
     OVTFDecoder(string op_type, string op_name, int input_size) : m_op_type(op_type), m_op_name(op_name), m_input_size(input_size), m_next_ptr(nullptr) {}
 
-    std::shared_ptr<ov::Variant> get_attribute(const std::string& name,
-                                               const ngraph::VariantTypeInfo& type_info) const override;
+    //std::shared_ptr<ov::Variant> get_attribute(const std::string& name,
+    //                                           const ngraph::VariantTypeInfo& type_info) const override;
+    ov::Any get_attribute(const std::string& name, const std::type_info& type_info) const override;
 
     size_t get_input_size() const override;
 
