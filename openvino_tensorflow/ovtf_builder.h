@@ -6,6 +6,7 @@
 #ifndef OPENVINO_TF_BRIDGE_BUILDER_H_
 #define OPENVINO_TF_BRIDGE_BUILDER_H_
 
+
 #include <ostream>
 #include <vector>
 
@@ -33,13 +34,21 @@ class Builder {
       ngraph::ResultVector& ng_func_result_list,
       const std::vector<Tensor>& tf_input_tensors);
   
-
+#ifdef TF_FE_NO_TF_DEP
   static Status CreateGraphIterator(
       const std::vector<TensorShape>& inputs,
       const std::vector<const Tensor*>& static_input_map, const Graph* tf_graph,
       const string name, std::shared_ptr<OVTFGraphIterator>& graph_iterator,std::shared_ptr<ngraph::Function>& ng_function,
       ngraph::ResultVector& ng_func_result_list,
       const std::vector<Tensor>& tf_input_tensors);
+#else
+  static Status CreateGraphIterator(
+      const std::vector<TensorShape>& inputs,
+      const std::vector<const Tensor*>& static_input_map, const GraphDef* tf_graph,
+      const string name, std::shared_ptr<OVTFGraphIterator>& graph_iterator,std::shared_ptr<ngraph::Function>& ng_function,
+      ngraph::ResultVector& ng_func_result_list,
+      const std::vector<Tensor>& tf_input_tensors);
+#endif
 
   using OpMap = std::unordered_map<std::string,
                                    std::vector<ngraph::Output<ngraph::Node>>>;

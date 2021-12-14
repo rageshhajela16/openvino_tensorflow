@@ -1,51 +1,19 @@
 
 #include <openvino_tensorflow/ovtf_decoder.h>
 #include <ngraph/ngraph.hpp>
-//#include <ngraph/variant.hpp>
-//#include <ngraph/node_context.hpp>
 #include <openvino/core/type/element_type.hpp>
 #include <string>
 #include <tensorflow_frontend/decoder.hpp>
 #include <tensorflow_frontend/frontend.hpp>
-//#include <tensorflow_frontend/place.hpp>
 #include <vector>
 
 
-//#include "node_context.hpp"
 
 namespace tensorflow {
 namespace openvino_tensorflow {
 
-//#define OPENVINO_VARIANT_DECLARATION(TYPE, info)                                          \
-//    template <>                                                                           \
-//    class ov::VariantWrapper<TYPE> : public ov::VariantImpl<TYPE> {                               \
-//    public:                                                                               \
-//        OPENVINO_RTTI(info);                                                              \
-//        ov::VariantWrapper<TYPE>(const value_type& value) : ov::VariantImpl<value_type>(value) {} \
-//    }
-//
-//namespace ov {
-//OPENVINO_VARIANT_DECLARATION(int32_t, "Variant::int32");
-//OPENVINO_VARIANT_DECLARATION(uint64_t, "Variant::uint64_t");
-//OPENVINO_VARIANT_DECLARATION(std::vector<int32_t>, "Variant::int32_vector");
-//OPENVINO_VARIANT_DECLARATION(float, "Variant::float");
-//OPENVINO_VARIANT_DECLARATION(std::vector<float>, "Variant::float_vector");
-//OPENVINO_VARIANT_DECLARATION(bool, "Variant::bool");
-//OPENVINO_VARIANT_DECLARATION(ov::element::Type, "Variant::ov_element_type");
-//OPENVINO_VARIANT_DECLARATION(std::vector<int64_t>, "Variant::int64_vector");
-//OPENVINO_VARIANT_DECLARATION(ov::PartialShape, "Variant:ov_PartialShape");
-//OPENVINO_VARIANT_DECLARATION(std::vector<std::string>, "Variant::string_vector");
-////OPENVINO_VARIANT_DECLARATION(::tensorflow::DataType, "Variant::DataType");
-////OPENVINO_VARIANT_DECLARATION(::tensorflow::TensorProto, "Variant::TensorProto");
-//}  // namespace ov
 
-//template <>
-//class VariantWrapper<ov::element::Type> : public ov::VariantImpl<ov::element::Type> {
-//public:
-//    OPENVINO_RTTI("Variant::ov_element_type");
-//    VariantWrapper(const value_type& value) : ov::VariantImpl<value_type>(value) {}
-//};
-
+#ifndef TF_FE_NO_TF_DEP
 namespace {
 const std::map<::tensorflow::DataType, ov::element::Type>& TYPE_MAP() {
     static const std::map<::tensorflow::DataType, ov::element::Type> type_map{
@@ -62,45 +30,13 @@ const std::map<::tensorflow::DataType, ov::element::Type>& TYPE_MAP() {
     return type_map;
 }
 }  // namespace
+#endif
 
-//template <class T>
-//bool is_type(const ngraph::VariantTypeInfo& type_info) {
-//    return type_info == ngraph::VariantWrapper<T>::get_type_info_static();
-//}
-
-//template <class T>
-//shared_ptr<ov::VariantWrapper<T>> create_variant(const T& data) {
-//    return make_shared<ov::VariantWrapper<T>>(data);
-//}
-
-//std::shared_ptr<ov::Variant> OVTFDecoder::get_attribute(const std::string& name,
-//                                                           const ngraph::VariantTypeInfo& type_info) const {
-//    auto attrs = decode_attribute_helper(name);
-//    if (attrs.empty()) {
-//        return nullptr;
-//    }
-//
-//    std::cout << "OVTF_LOG - VariantTypeInfo - name: " << name << ", type_info: " << type_info << std::endl;
-//    //} else if (is_type<ov::element::Type>(type_info)) {
-//    std::cout << "OVTF_LOG - VariantTypeInfo - type_info.name: " << type_info.name << std::endl;
-//    if (strncmp(type_info.name, "Variant::ov_element_type", 24) == 0) {
-//        std::cout << "OVTF_LOG - VariantTypeInfo - ov::element::Type - A" << std::endl;
-//        auto data_type = attrs[0].type();
-//        //shared_ptr<ov::VariantWrapper<ov::element::Type>> vwrapper = create_variant<ov::element::Type>(TYPE_MAP().at(data_type));
-//        shared_ptr<ov::VariantWrapper<ov::element::Type>> vwrapper = make_shared<VariantWrapper<ov::element::Type>>(TYPE_MAP().at(data_type));
-//        //shared_ptr<ov::VariantWrapper<ov::element::Type>> vwrapper = make_shared<VariantWrapper<ov::element::Type>>(ov::element::f32);
-//        //shared_ptr<VariantWrapper<ov::element::Type>> vwrapper = make_shared<VariantWrapper<ov::element::Type>>(ov::element::f32);
-//        return vwrapper;
-//        //return ov::make_variant<ov::element::Type>(TYPE_MAP().at(data_type));
-//        //shared_ptr<ov::VariantImpl<ov::element::Type>> variant = make_shared<ov::VariantImpl<ov::element::Type>>(TYPE_MAP().at(data_type));
-//        //return variant;
-//    } else {
-//        std::cout << "OVTF_LOG - VariantTypeInfo - ov::element::Type - B" << std::endl;
-//    }
-//    return nullptr;
-//}
 
 ov::Any OVTFDecoder::get_attribute(const std::string& name, const std::type_info& type_info) const {
+#ifdef TF_FE_NO_TF_DEP
+    return {};
+#else
     auto attrs = decode_attribute_helper(name);
     if (attrs.empty()) {
         return {};
@@ -156,34 +92,52 @@ ov::Any OVTFDecoder::get_attribute(const std::string& name, const std::type_info
 
     // type is not supported by decoder
     return {};
+#endif
 }
 
 size_t OVTFDecoder::get_input_size() const {
+#ifdef TF_FE_NO_TF_DEP
     return m_input_size;
+#else
+    return m_node_def->input_size();
+#endif
 }
 
 void OVTFDecoder::get_input_node(size_t input_port_idx,
                                     std::string& producer_name,
                                     size_t& producer_output_port_index) const {
-    std::string producer_port_name = m_tfnode_ptr->def().input(input_port_idx);
+#ifdef TF_FE_NO_TF_DEP
+#else
+    std::string producer_port_name = m_node_def->input(input_port_idx);
     auto delim_pos = producer_port_name.find(':');
     if (delim_pos != std::string::npos) {
         producer_name = producer_port_name.substr(0, delim_pos);
-        producer_output_port_index = std::stoi(producer_port_name.substr(delim_pos));
+    std::string p_p_idx_str = producer_port_name.substr(delim_pos+1);
+        producer_output_port_index = std::stoi(producer_port_name.substr(delim_pos+1));
         return;
     }
     producer_name = producer_port_name;
     producer_output_port_index = 0;
+#endif
 }
 
 const std::string& OVTFDecoder::get_op_type() const {
+#ifdef TF_FE_NO_TF_DEP
     return m_op_type;
+#else
+    return m_node_def->op();
+#endif
 }
 
 const std::string& OVTFDecoder::get_op_name() const {
+#ifdef TF_FE_NO_TF_DEP
     return m_op_name;
+#else
+    return m_node_def->name();
+#endif
 }
 
+#ifdef TF_FE_NO_TF_DEP
 void OVTFDecoder::set_next(shared_ptr<OVTFDecoder> next_ptr) {
     m_next_ptr = next_ptr;
 }
@@ -199,13 +153,21 @@ void OVTFDecoder::add_attr(std::string attr_name, ovtf_attr value) {
 void OVTFDecoder::set_tfnode(shared_ptr<tensorflow::Node> tfnode_ptr) {
     this->m_tfnode_ptr = tfnode_ptr;
 }
+#else
 
 vector<::tensorflow::AttrValue> OVTFDecoder::decode_attribute_helper(const string& name) const {
-    auto attr_map = m_tfnode_ptr->def().attr();
-    if (attr_map.contains(name))
-        return {m_tfnode_ptr->def().attr().at(name)};
-    return {};
+
+    auto attr_map = m_node_def->attr();
+    FRONT_END_GENERAL_CHECK(attr_map.contains(name),
+                            "An error occurred while parsing the ",
+                            name,
+                            " attribute of ",
+                            this->get_op_type(),
+                            "node");
+    auto value = m_node_def->attr().at(name);
+    return {value};
 }
+#endif
 
 }  // namespace openvino_tensorflow
 }  // namespace tensorflow

@@ -6,6 +6,8 @@
 
 #pragma once
 
+//#define TF_FE_NO_TF_DEP
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,18 +25,22 @@ namespace tensorflow {
 namespace openvino_tensorflow {
 
 
+#ifdef TF_FE_NO_TF_DEP
 struct ovtf_attr {
   int type;
 };
+#endif
 
 // A Inference Engine executable object produced by compiling an nGraph
 // function.
 class OVTFDecoder : public ov::frontend::DecoderBase {
 public:
+#ifdef TF_FE_NO_TF_DEP
     OVTFDecoder(string op_type, string op_name, int input_size) : m_op_type(op_type), m_op_name(op_name), m_input_size(input_size), m_next_ptr(nullptr) {}
+#else
+    explicit OVTFDecoder(const ::tensorflow::NodeDef* node_def) : m_node_def(node_def) {}
+#endif
 
-    //std::shared_ptr<ov::Variant> get_attribute(const std::string& name,
-    //                                           const ngraph::VariantTypeInfo& type_info) const override;
     ov::Any get_attribute(const std::string& name, const std::type_info& type_info) const override;
 
     size_t get_input_size() const override;
@@ -47,21 +53,30 @@ public:
 
     const std::string& get_op_name() const override;
 
+#ifdef TF_FE_NO_TF_DEP
     void set_next(shared_ptr<OVTFDecoder> next_ptr);
     shared_ptr<OVTFDecoder> get_next() const;
 
     void add_attr(std::string attr_name, ovtf_attr value);
 
     void set_tfnode(shared_ptr<tensorflow::Node> tfnode_ptr);
+#else
     vector<::tensorflow::AttrValue> decode_attribute_helper(const string& name) const;
+#endif
 
 private:
+#ifdef TF_FE_NO_TF_DEP
     string m_op_name;
     string m_op_type;
     int m_input_size;
+    //TODO: Use an array instead of a linked list
     shared_ptr<OVTFDecoder> m_next_ptr;
     std::map<std::string, ovtf_attr> m_attr_map;
     shared_ptr<tensorflow::Node> m_tfnode_ptr;
+#else
+    
+    const ::tensorflow::NodeDef* m_node_def;
+#endif
 };
 }  // namespace openvino_tensorflow
 }  // namespace tensorflow

@@ -4036,17 +4036,27 @@ Status Builder::TranslateGraph(
   return Status::OK();
 }
 
+#ifdef TF_FE_NO_TF_DEP
 Status Builder::CreateGraphIterator(
       const std::vector<TensorShape>& inputs,
       const std::vector<const Tensor*>& static_input_map, const Graph* tf_graph,
       const string name, std::shared_ptr<OVTFGraphIterator>& graph_iterator, std::shared_ptr<ngraph::Function>& ng_function,
       ngraph::ResultVector& ng_func_result_list,
       const std::vector<Tensor>& tf_input_tensors) {
+#else
+Status Builder::CreateGraphIterator(
+      const std::vector<TensorShape>& inputs,
+      const std::vector<const Tensor*>& static_input_map, const GraphDef* tf_graph,
+      const string name, std::shared_ptr<OVTFGraphIterator>& graph_iterator, std::shared_ptr<ngraph::Function>& ng_function,
+      ngraph::ResultVector& ng_func_result_list,
+      const std::vector<Tensor>& tf_input_tensors) {
+#endif
   //
   // We will visit ops in topological order.
   //
   // ought to be `const Node*`, but GetReversePostOrder doesn't use `const`
 
+#ifdef TF_FE_NO_TF_DEP
   vector<Node*> ordered;
   GetReversePostOrder(*tf_graph, &ordered, NodeComparatorName());
 
@@ -4054,9 +4064,9 @@ Status Builder::CreateGraphIterator(
   std::shared_ptr<OVTFDecoder> prev_decoder = nullptr;
   int num_nodes = 0;
   for (const auto n : ordered) {
-    if (n->type_string() == "_Arg" || n->type_string() == "_Retval") {
-        continue;
-    }
+    //if (n->type_string() == "_Arg" || n->type_string() == "_Retval") {
+    //    continue;
+    //}
     num_nodes++;
     std::shared_ptr<OVTFDecoder> node_decoder = std::make_shared<OVTFDecoder>(n->type_string(), n->name(), n->num_inputs());
     std::shared_ptr<tensorflow::Node> n_ptr(n);
@@ -4073,34 +4083,16 @@ Status Builder::CreateGraphIterator(
       node_decoder->add_attr(attr_val.first, node_attr);
     }
   }
-    std::cout << "OVTF_LOG - CreateGraphIterator - A" << std::endl;
-  //graph_iterator = std::make_shared<OVTFGraphIterator>(head_decoder, num_nodes);
   ov::frontend::GraphIterator::Ptr giter = std::make_shared<OVTFGraphIterator>(head_decoder, num_nodes);
-  //ov::AnyVector gvec;
-  //gvec.push_back(gvec);
-  //ov::Any gany(graph_iterator);
-  ov::Any gany(giter);
-    std::cout << "OVTF_LOG - CreateGraphIterator - A.0 - any: " << gany.type_info().name() << std::endl;
-  if (gany.is<ov::frontend::GraphIterator::Ptr>()) {
-    std::cout << "OVTF_LOG - CreateGraphIterator - A.1" << std::endl;
-  } else {
-    std::cout << "OVTF_LOG - CreateGraphIterator - A.2" << std::endl;
-  }
-    std::cout << "OVTF_LOG - CreateGraphIterator - B" << std::endl;
-  ov::frontend::FrontEndTF frontend;
-    std::cout << "OVTF_LOG - CreateGraphIterator - C" << std::endl;
-  ov::frontend::InputModel::Ptr input_model = frontend.load(gany);
-    std::cout << "OVTF_LOG - CreateGraphIterator - D" << std::endl;
-  //ng_function = frontend.convert(input_model);
-  frontend.convert(input_model);
-    std::cout << "OVTF_LOG - CreateGraphIterator - E" << std::endl;
+#else
+  ov::frontend::GraphIterator::Ptr giter = std::make_shared<OVTFGraphIterator>(tf_graph);
+#endif
 
-  //std::shared_ptr<ov::Variant> gi_variant = ov::make_variant((ov::frontend::GraphIterator::Ptr)graph_iterator);
-  //ov::VariantVector gi_vector;
-  //gi_vector.push_back(gi_variant);
-  //ov::frontend::FrontEndTF frontend;
-  //ov::frontend::InputModel::Ptr input_model = frontend.load(gi_vector);
-  //ng_function = frontend.convert(input_model);
+  ov::Any gany(giter);
+  ov::frontend::FrontEndTF frontend;
+  ov::frontend::InputModel::Ptr input_model = frontend.load(gany);
+  ng_function = frontend.convert(input_model);
+
   return Status::OK();
 }
 
