@@ -13,7 +13,6 @@ namespace tensorflow {
 namespace openvino_tensorflow {
 
 
-#ifndef TF_FE_NO_TF_DEP
 namespace {
 const std::map<::tensorflow::DataType, ov::element::Type>& TYPE_MAP() {
     static const std::map<::tensorflow::DataType, ov::element::Type> type_map{
@@ -30,13 +29,9 @@ const std::map<::tensorflow::DataType, ov::element::Type>& TYPE_MAP() {
     return type_map;
 }
 }  // namespace
-#endif
 
 
 ov::Any OVTFDecoder::get_attribute(const std::string& name, const std::type_info& type_info) const {
-#ifdef TF_FE_NO_TF_DEP
-    return {};
-#else
     auto attrs = decode_attribute_helper(name);
     if (attrs.empty()) {
         return {};
@@ -92,22 +87,15 @@ ov::Any OVTFDecoder::get_attribute(const std::string& name, const std::type_info
 
     // type is not supported by decoder
     return {};
-#endif
 }
 
 size_t OVTFDecoder::get_input_size() const {
-#ifdef TF_FE_NO_TF_DEP
-    return m_input_size;
-#else
     return m_node_def->input_size();
-#endif
 }
 
 void OVTFDecoder::get_input_node(size_t input_port_idx,
                                     std::string& producer_name,
                                     size_t& producer_output_port_index) const {
-#ifdef TF_FE_NO_TF_DEP
-#else
     std::string producer_port_name = m_node_def->input(input_port_idx);
     auto delim_pos = producer_port_name.find(':');
     if (delim_pos != std::string::npos) {
@@ -118,42 +106,16 @@ void OVTFDecoder::get_input_node(size_t input_port_idx,
     }
     producer_name = producer_port_name;
     producer_output_port_index = 0;
-#endif
 }
 
 const std::string& OVTFDecoder::get_op_type() const {
-#ifdef TF_FE_NO_TF_DEP
-    return m_op_type;
-#else
     return m_node_def->op();
-#endif
 }
 
 const std::string& OVTFDecoder::get_op_name() const {
-#ifdef TF_FE_NO_TF_DEP
-    return m_op_name;
-#else
     return m_node_def->name();
-#endif
 }
 
-#ifdef TF_FE_NO_TF_DEP
-void OVTFDecoder::set_next(shared_ptr<OVTFDecoder> next_ptr) {
-    m_next_ptr = next_ptr;
-}
-
-shared_ptr<OVTFDecoder> OVTFDecoder::get_next() const {
-    return m_next_ptr;
-}
-
-void OVTFDecoder::add_attr(std::string attr_name, ovtf_attr value) {
-    m_attr_map.insert(pair<std::string, ovtf_attr>(attr_name, value));
-}
-
-void OVTFDecoder::set_tfnode(shared_ptr<tensorflow::Node> tfnode_ptr) {
-    this->m_tfnode_ptr = tfnode_ptr;
-}
-#else
 
 vector<::tensorflow::AttrValue> OVTFDecoder::decode_attribute_helper(const string& name) const {
 
@@ -167,7 +129,6 @@ vector<::tensorflow::AttrValue> OVTFDecoder::decode_attribute_helper(const strin
     auto value = m_node_def->attr().at(name);
     return {value};
 }
-#endif
 
 }  // namespace openvino_tensorflow
 }  // namespace tensorflow

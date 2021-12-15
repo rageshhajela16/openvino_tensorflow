@@ -4036,57 +4036,13 @@ Status Builder::TranslateGraph(
   return Status::OK();
 }
 
-#ifdef TF_FE_NO_TF_DEP
-Status Builder::CreateGraphIterator(
-      const std::vector<TensorShape>& inputs,
-      const std::vector<const Tensor*>& static_input_map, const Graph* tf_graph,
-      const string name, std::shared_ptr<OVTFGraphIterator>& graph_iterator, std::shared_ptr<ngraph::Function>& ng_function,
-      ngraph::ResultVector& ng_func_result_list,
-      const std::vector<Tensor>& tf_input_tensors) {
-#else
 Status Builder::CreateGraphIterator(
       const std::vector<TensorShape>& inputs,
       const std::vector<const Tensor*>& static_input_map, const GraphDef* tf_graph,
       const string name, std::shared_ptr<OVTFGraphIterator>& graph_iterator, std::shared_ptr<ngraph::Function>& ng_function,
       ngraph::ResultVector& ng_func_result_list,
       const std::vector<Tensor>& tf_input_tensors) {
-#endif
-  //
-  // We will visit ops in topological order.
-  //
-  // ought to be `const Node*`, but GetReversePostOrder doesn't use `const`
-
-#ifdef TF_FE_NO_TF_DEP
-  vector<Node*> ordered;
-  GetReversePostOrder(*tf_graph, &ordered, NodeComparatorName());
-
-  std::shared_ptr<OVTFDecoder> head_decoder = nullptr;
-  std::shared_ptr<OVTFDecoder> prev_decoder = nullptr;
-  int num_nodes = 0;
-  for (const auto n : ordered) {
-    //if (n->type_string() == "_Arg" || n->type_string() == "_Retval") {
-    //    continue;
-    //}
-    num_nodes++;
-    std::shared_ptr<OVTFDecoder> node_decoder = std::make_shared<OVTFDecoder>(n->type_string(), n->name(), n->num_inputs());
-    std::shared_ptr<tensorflow::Node> n_ptr(n);
-    node_decoder->set_tfnode(n_ptr);
-    if (head_decoder == nullptr)
-      head_decoder = node_decoder;
-    if (prev_decoder != nullptr)
-      prev_decoder->set_next(node_decoder);
-    prev_decoder = node_decoder;
-    auto attr_map = n->attrs();
-    for (auto attr_val : attr_map) {
-      ovtf_attr node_attr;
-      node_attr.type = 0;
-      node_decoder->add_attr(attr_val.first, node_attr);
-    }
-  }
-  ov::frontend::GraphIterator::Ptr giter = std::make_shared<OVTFGraphIterator>(head_decoder, num_nodes);
-#else
   ov::frontend::GraphIterator::Ptr giter = std::make_shared<OVTFGraphIterator>(tf_graph);
-#endif
 
   ov::Any gany(giter);
   ov::frontend::FrontEndTF frontend;
