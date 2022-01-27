@@ -526,10 +526,6 @@ Status AssignClusters(Graph* graph) {
   bool invalid_dyn_op = false;
   while (dyn_node_check.size() > 0) {
     Node* node = dyn_node_check.back();
-    Node* src;
-    // traversal starts from one of the dynout ops, so get their pointer for later unmarking
-    if ( is_node_type_in_vector(node, dyn_out_nodes) )
-      src = node;
     dyn_node_check.pop_back();
 
     for (auto it : node->out_nodes()) {
@@ -537,9 +533,9 @@ Status AssignClusters(Graph* graph) {
       {
         if (is_node_type_in_vector(it, nodes_needing_static_inputs))
         {  
-          OVTF_VLOG(2) << "Unmark dynamic op with invalid path: " << src->name() << " ["
+          OVTF_VLOG(2) << "Unmark unsupported op with invalid path: " << src->name() << " ["
                     << src->type_string() << "] -> " << it->name() << " [" << it->type_string() << "]";
-          src->ClearAttr("_ovtf_marked_for_clustering");
+          it->ClearAttr("_ovtf_marked_for_clustering");
           break;
         } 
         else if (visited_node_check.find(it) == visited_node_check.end())

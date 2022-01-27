@@ -206,8 +206,7 @@ Status DeassignClusters(Graph* graph) {
     int non_trivial_count = 0;
 
     std::unordered_set<std::string> trivial_ops = {"Const", "Identitiy"};
-    std::unordered_set<std::string> essential_ops = {"Conv2D", "_FusedConv2D", 
-    "DepthwiseConv2dNative", "_FusedDepthwiseConv2dNative"};
+    std::unordered_set<std::string> essential_ops = {};
 
     bool essential_ops_present = false;
 
