@@ -496,7 +496,61 @@ Status AssignClusters(Graph* graph) {
       }
     }
   }
+  std::vector<std::string> dyn_out_nodes = {"NonMaxSuppressionV2", "Reshape"};
+  std::vector<std::string> nodes_needing_static_inputs= {"ZerosLike", "Size", "Conv2D", "Unpack"};
 
+  auto is_node_type_in_vector = [](Node *node, std::vector<std::string> nodes_list) {
+    return std::any_of(
+                        nodes_list.begin(),
+                        nodes_list.end(),
+                        [node](std::string n)
+                        {
+                          return n==node->type_string();
+                        }
+                      );
+  };
+
+  std::vector<Node*> dyn_node_check;
+  std::set<Node*> visited_node_check;
+
+  for (auto node : graph->nodes()) {
+
+    // if any node encountered is one with dyn output shapes, collect them for tracking
+    if ( is_node_type_in_vector(node, dyn_out_nodes) )
+    {
+      dyn_node_check.push_back(node);
+      visited_node_check.insert(node);
+    }
+  }
+
+  bool invalid_dyn_op = false;
+  while (dyn_node_check.size() > 0) {
+    Node* node = dyn_node_check.back();
+    Node* src;
+    // traversal starts from one of the dynout ops, so get their pointer for later unmarking
+    if ( is_node_type_in_vector(node, dyn_out_nodes) )
+      src = node;
+    dyn_node_check.pop_back();
+
+    for (auto it : node->out_nodes()) {
+      if (!is_node_type_in_vector(it, dyn_out_nodes)) 
+      {
+        if (is_node_type_in_vector(it, nodes_needing_static_inputs))
+        {  
+          OVTF_VLOG(2) << "Unmark dynamic op with invalid path: " << src->name() << " ["
+                    << src->type_string() << "] -> " << it->name() << " [" << it->type_string() << "]";
+          src->ClearAttr("_ovtf_marked_for_clustering");
+          break;
+        } 
+        else if (visited_node_check.find(it) == visited_node_check.end())
+        {
+          dyn_node_check.push_back(it);
+          visited_node_check.insert(it);
+        }
+      }
+    }
+  }
+  
   do {
     changed = false;
 
