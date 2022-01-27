@@ -497,7 +497,7 @@ Status AssignClusters(Graph* graph) {
     }
   }
   std::vector<std::string> dyn_out_nodes = {"NonMaxSuppressionV2", "Reshape"};
-  std::vector<std::string> nodes_needing_static_inputs= {"ZerosLike", "Size", "Conv2D", "Unpack"};
+  std::vector<std::string> nodes_needing_static_inputs= {"ZerosLike", "Size", "Conv2D", "_FusedConv2D", "Unpack"};
 
   auto is_node_type_in_vector = [](Node *node, std::vector<std::string> nodes_list) {
     return std::any_of(
@@ -523,7 +523,6 @@ Status AssignClusters(Graph* graph) {
     }
   }
 
-  bool invalid_dyn_op = false;
   while (dyn_node_check.size() > 0) {
     Node* node = dyn_node_check.back();
     Node* src;
@@ -540,7 +539,6 @@ Status AssignClusters(Graph* graph) {
           OVTF_VLOG(2) << "Unmark unsupported op with invalid path: " << src->name() << " ["
                     << src->type_string() << "] -> " << it->name() << " [" << it->type_string() << "]";
           it->ClearAttr("_ovtf_marked_for_clustering");
-          break;
         } 
         else if (visited_node_check.find(it) == visited_node_check.end())
         {
