@@ -526,6 +526,10 @@ Status AssignClusters(Graph* graph) {
   bool invalid_dyn_op = false;
   while (dyn_node_check.size() > 0) {
     Node* node = dyn_node_check.back();
+    Node* src;
+    // traversal starts from one of the dynout ops
+    if ( is_node_type_in_vector(node, dyn_out_nodes) )
+      src = node;
     dyn_node_check.pop_back();
 
     for (auto it : node->out_nodes()) {
